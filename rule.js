@@ -38,7 +38,7 @@ export function companySplit(invest) {
   if (total === 0) return [];
   const rows = COMPANIES.map(([name, w]) => ({ name, amount: Math.floor(total * w) }));
   const used = rows.reduce((a, r) => a + r.amount, 0);
-  rows.push({ name: 'and 45 others', amount: total - used });
+  rows.push({ name: 'and 45 others', short: '+45', amount: total - used });
   return rows;
 }
 
@@ -76,7 +76,7 @@ export function stageSentence(plan) {
 }
 
 export const worstCase = (v) => Math.round(Math.max(0, num(v)) * (1 - FALL));
-export const worstLine = (v) => `Worst realistic year, a ${Math.round(FALL * 100)}% fall: ${fmtRs(v)} becomes about ${fmtRs(worstCase(v))}. Illustration only.`;
+export const worstLine = (v) => `A bad year, a ${Math.round(FALL * 100)}% fall: ${fmtRs(v)} becomes about ${fmtRs(worstCase(v))}. 2008 was worse, about half.`;
 
 export function firedLine(amount, floor, share, invested) {
   const kept = clampFloor(floor, amount);

@@ -1,16 +1,18 @@
 import * as R from './rule.js';
 import { SCREEN as S, GUIDE, BANNED } from './copy.js';
-import { route, ALL_QA } from './guide.js';
+import { byId, ALL_QA } from './guide.js';
 
 function screenBodies() {
   const h = S.home;
   return {
-    welcome: [S.welcome.body],
-    home1: [h.steps[0].before.body, h.steps[0].after.body], home2: [h.steps[1].before.body, h.steps[1].after.body], home3: [h.steps[2].before.body], homeHow: h.how.lines,
+    welcome: [S.welcome.body, ...S.welcome.steps.flat()],
+    kyc: [S.kyc.sub],
+    mfHome: [h.sub, h.verifying, ...h.steps.map((s) => s.before)],
     basics0: [S.basics.cards[0].body], basics1: [S.basics.cards[1].body], basics2: [S.basics.cards[2].body],
     rule1: [S.rule1.label, S.rule1.err], rule2: [S.rule2.hint, S.rule2.zero, S.rule2.over], rule3: [S.rule3.line, S.rule3.half],
-    rule4: [S.rule4.sub, R.worstLine(1500), S.rule4.crash, S.rule4.stop, S.rule4.capNote],
-    invest: [S.invest.one.body, ...S.invest.later.rows.map((r) => r[1])], stocks: [S.stocks.card.body, S.stocks.note], fno: [S.fno.card.body, S.fno.note], you: [S.you.line, S.you.modeNote],
+    rule4: [R.worstLine(1500), S.rule4.crash, S.rule4.stop, S.rule4.capNote],
+    explore: [S.explore.one.body, ...S.explore.later.rows.map((r) => r[1])],
+    stocksGate: [S.stocks.gate.body], fnoGate: [S.fno.gate.body], you: [S.you.line, S.you.modeNote],
   };
 }
 const words = (arr) => arr.join(' ').split(/\s+/).filter(Boolean).length;
@@ -45,21 +47,17 @@ export function runEvals() {
   t('B1', 'no banned word', hits.length ? hits.join(', ') : 'none', hits.length === 0);
   const wc = screenBodies(); const over = Object.entries(wc).map(([k, a]) => [k, words(a)]).filter(([, c]) => c >= 60);
   t('B7', 'every screen under 60 words', over.length ? over.map(([k, c]) => `${k}=${c}`).join(', ') : Object.entries(wc).map(([k, a]) => `${k}=${words(a)}`).join(' '), over.length === 0);
-  const e1 = route('what if the app crashes while paying', '/rule/4');
-  t('E1', 'crash answer', e1.qa && e1.qa.id, e1.qa && e1.qa.id === 'money5');
-  const e2 = route('how do I get money back', '/');
-  t('E2', 'money-back answer', e2.qa && e2.qa.id, e2.qa && e2.qa.id === 'money4');
-  const e3 = route('WHAT IF THE APP CRASHES?!', '/rule/4');
-  t('E3', 'same as E1', e3.qa && e3.qa.id, e3.qa && e1.qa && e3.qa.id === e1.qa.id);
-  const e4 = route('zzqx', '/rule/2');
-  t('E4', 'fallback', e4.fallback ? 'fallback' : e4.qa.id, e4.fallback === true);
   let cs = R.companySplit(1000);
   t('E5', 'six rows sum 1000, first 130', cs.map((r) => r.amount).join(','), cs.length === 6 && cs.reduce((a, r) => a + r.amount, 0) === 1000 && cs[0].amount === 130);
   t('E6', 'empty', R.companySplit(0).length, R.companySplit(0).length === 0);
   cs = R.companySplit(10000000);
   t('E7', 'sum 10000000', cs.reduce((a, r) => a + r.amount, 0), cs.reduce((a, r) => a + r.amount, 0) === 10000000);
   t('E8', '100 then 1000', R.runInvest(30000, 20000, 0.10, true, 0) + ', ' + R.runInvest(30000, 20000, 0.10, true, 1), R.runInvest(30000, 20000, 0.10, true, 0) === 100 && R.runInvest(30000, 20000, 0.10, true, 1) === 1000);
+  const chipIds = [...Object.values(GUIDE.chips).flat(), ...S.home.askIds]; const dead = chipIds.filter((id) => !byId(id));
+  t('E9', 'every Ask question resolves to an answer', dead.length ? 'missing: ' + dead.join(', ') : `${chipIds.length} links, 0 missing`, dead.length === 0);
+  const flat = ALL_QA.filter((qa) => /^no\b/i.test(qa.a) && !['money6', 'basics4', 'plan9'].includes(qa.id));
+  t('E10', 'no money or safety answer opens with "No"', flat.length ? flat.map((q) => q.id).join(', ') : 'none', flat.length === 0);
   const minChips = Math.min(...Object.values(GUIDE.chips).map((a) => a.length));
-  t('E11', '28+ pairs; 3+ chips per route', `${ALL_QA.length} pairs; min chips ${minChips}`, ALL_QA.length >= 28 && minChips >= 3);
+  t('E11', '28+ answers; 3+ questions per screen', `${ALL_QA.length} answers; min per screen ${minChips}`, ALL_QA.length >= 28 && minChips >= 3);
   return rows;
 }
