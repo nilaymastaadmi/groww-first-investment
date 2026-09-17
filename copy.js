@@ -124,7 +124,7 @@ export const GUIDE = {
       { id: 'start4', q: 'The OTP went to my dad’s phone.', a: 'Aadhaar sends it to the number linked at enrolment. Ask them to read it out, or update the number at any Aadhaar centre.' },
       { id: 'start5', q: 'Why does it say verifying?', a: 'A person or a system checks your documents. Nothing moves until that is done. Look around meanwhile.' },
       { id: 'start7', q: 'Do I have to set a rule?', a: 'Not at all. Invest once whenever you like. A rule is only for people whose money arrives at different times.' },
-      { id: 'start6', q: 'Do I need a lot of money?', a: 'You do not need a lot. The rule works on whatever lands, and a fund can start at ₹100.' },
+      { id: 'start6', q: 'Do I need a lot of money?', a: 'You do not need a lot. You can start with ₹100 and add more only when you want to.' },
     ] },
     { id: 'money', name: 'Your money', qa: [
       { id: 'money1', q: 'Where does my money go?', a: 'By UPI mandate to the fund house, which holds it in your name. Groww never holds it.' },
