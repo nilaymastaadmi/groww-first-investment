@@ -9,8 +9,8 @@ const initial = () => ({
   started: false, kyc: [], kycSubmitted: false, kycOpen: null,
   basicsIdx: 0, basicsDone: false,
   shape: null, lastInflow: null, floor: null, share: 0.10, shareAsked: 0.10, s1err: '',
-  rule: null, paused: false, fires: [], runs: 0, capOn: false, landedOpen: false, landed: null, landedErr: '', lastFire: null, toast: '',
-  gates: { stocks: false, fno: false }, askOpen: null,
+  rule: null, paused: false, fires: [], runs: 0, landedOpen: false, landed: null, landedErr: '', lastFire: null, toast: '',
+  gates: { stocks: false, fno: false },
   guide: { open: false, msgs: [], chips: null },
 });
 let st = initial();
@@ -54,7 +54,7 @@ const btn = (label, action, cls = 'primary', extra = '') => `<button class="btn 
 const amountInput = (id, value) => `<div class="amt"><span>₹</span><input id="${id}" type="text" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="0" value="${value == null ? '' : value}" data-amount="${id}"></div>`;
 const logo = '<span class="logo"><i></i></span>';
 function appbar() {
-  return `<header class="appbar">${logo}<div class="search">${ICON.search}<span>Search Groww...</span></div><a href="#/you" class="avatar">N</a></header>`;
+  return `<header class="appbar">${logo}<b class="brand">Groww</b><a href="#/you" class="avatar">N</a></header>`;
 }
 function tabbar(active) {
   return `<nav class="tabs">${S.tabs.map(([href, name, icon]) => `<a href="#${href}" class="${icon === active ? 'on' : ''}">${ICON[icon]}<span>${name}</span></a>`).join('')}</nav>`;
@@ -102,41 +102,31 @@ function stepRow(i, state, body, action) {
 
 function ruleCard() {
   const r = st.rule, h = S.home.rule, fire = st.lastFire;
-  let run = '';
-  if (st.paused) run = `<p class="muted">${h.pausedNote}</p>`;
-  else if (st.landedOpen) run = `<label>${h.landedLabel}</label>${amountInput('landed', st.landed)}<div class="note err">${st.landedErr}</div>${btn(h.run, 'run', 'primary small')}`;
-  else run = btn(h.landed, 'landed-open', 'primary small');
   let result = '';
   if (fire) {
     const kept = R.clampFloor(r.floor, fire.amount);
-    const note = fire.invested === 0 ? R.zeroReason(fire.amount, r.floor, r.share) : fire.capped ? h.capped : '';
-    const holds = fire.invested > 0 ? `<div class="holds"><b>${S.home.holds.replace('{invested}', R.fmtRs(fire.invested))}</b>${R.companySplit(fire.invested).map((row, i) => `<div class="hrow"><span class="dot c${i}">${row.short || row.name.split(' ').map((w) => w[0]).join('').slice(0, 2)}</span><span>${row.name}</span><em>${R.fmtRs(row.amount)}</em></div>`).join('')}<small>${S.home.holdsNote}</small></div>` : '';
-    result = `<div class="split"><div><small>${h.received}</small><b>${R.fmtRs(fire.amount)}</b></div><div><small>${h.kept}</small><b>${R.fmtRs(kept)}</b></div><div><small>${h.invested}</small><b class="green">${R.fmtRs(fire.invested)}</b></div></div>${note ? `<p class="muted">${note}</p>` : ''}${holds}`;
-  } else if (!st.paused) {
-    result = `<p class="muted">${h.next}</p>`;
+    result = `<div class="split"><div><small>${h.received}</small><b>${R.fmtRs(fire.amount)}</b></div><div><small>${h.kept}</small><b>${R.fmtRs(kept)}</b></div><div><small>${h.invested}</small><b class="green">${R.fmtRs(fire.invested)}</b></div></div>${fire.invested === 0 ? `<p class="muted">${R.zeroReason(fire.amount, r.floor, r.share)}</p>` : ''}`;
   }
+  let action;
+  if (st.paused) action = `<p class="muted">${h.pausedNote}</p>`;
+  else if (st.landedOpen) action = `<label>${h.landedLabel}</label>${amountInput('landed', st.landed)}<div class="note err">${st.landedErr}</div>${btn(h.run, 'run')}`;
+  else action = `${fire ? '' : `<p class="muted">${h.next}</p>`}${btn(h.landed, 'landed-open')}`;
   return `<div class="card rulecard"><div class="rchead"><b>${h.title}</b><span class="chip ${st.paused ? 'amber' : 'green'}">${st.paused ? h.paused : h.active}</span></div>
-    <p class="rsentence">${R.ruleSentence(r.floor, r.share)}</p>${fundRow()}
-    ${result}${run}
-    <div class="ractions"><button class="ghost" data-action="pause">${st.paused ? h.resume : h.pause}</button><button class="ghost" data-action="change">${h.change}</button><button class="ghost red" data-action="stop-rule">${h.stop}</button></div>
-    <small class="muted">${h.runs}: ${st.runs}</small></div>`;
+    <p class="rsentence">${R.ruleSentence(r.floor, r.share)}</p>${result}${action}
+    <div class="ractions"><button class="lnk" data-action="pause">${st.paused ? h.resume : h.pause}</button><button class="lnk" data-action="change">${h.change}</button><button class="lnk red" data-action="stop-rule">${h.stop}</button></div></div>`;
 }
 
-function askSection() {
+function askRow() {
   const h = S.home;
-  return `<div class="card asksec"><b>${h.askTitle}</b><small class="muted">${h.askSub}</small>${h.askIds.map((id) => {
-    const qa = byId(id), open = st.askOpen === id;
-    return `<div class="qrow ${open ? 'open' : ''}"><button data-action="ask-toggle" data-id="${id}"><span>${qa.q}</span>${ICON.chev}</button>${open ? `<p>${fill(qa.a)}</p>` : ''}</div>`;
-  }).join('')}<button class="btn text" data-action="guide-open">${GUIDE.more}</button></div>`;
+  return `<button class="card rowlink" data-action="guide-open">${ICON.help}<span><b>${h.askTitle}</b><small>${h.askSub}</small></span>${ICON.chev}</button>`;
 }
 
 function mfHome() {
   const h = S.home, a = st.kycSubmitted, b = st.basicsDone, c = !!st.rule;
   const s1 = a ? 'done' : 'now', s2 = b ? 'done' : a ? 'now' : 'locked', s3 = c ? 'done' : b ? 'now' : 'locked';
-  const path = `<div class="card path">${stepRow(0, s1, a ? h.steps[0].after : h.steps[0].before, 'kyc')}${stepRow(1, s2, b ? h.steps[1].after : h.steps[1].before, 'basics')}${stepRow(2, s3, c ? h.steps[2].after : h.steps[2].before, 'plan')}</div>`;
+  const steps = c ? '' : `<div class="card path">${stepRow(0, s1, a ? h.steps[0].after : h.steps[0].before, 'kyc')}${stepRow(1, s2, b ? h.steps[1].after : h.steps[1].before, 'basics')}${stepRow(2, s3, c ? h.steps[2].after : h.steps[2].before, 'plan')}</div>`;
   const toast = st.toast ? `<div class="toast">${st.toast}</div>` : '';
-  const banner = a && !c ? `<div class="banner">${h.verifying}</div>` : '';
-  return tabScreen('mf', `${mfTabs('/mf')}<section class="pad"><h1>${h.title}</h1><p class="lead small">${h.sub}</p>${toast}${banner}${c ? ruleCard() : ''}${path}${askSection()}</section>`);
+  return tabScreen('mf', `${mfTabs('/mf')}<section class="pad"><h1>${h.title}</h1><p class="lead small">${c ? h.subRule : h.sub}</p>${toast}${c ? ruleCard() : steps}${askRow()}</section>`);
 }
 
 function mfExplore() {
@@ -181,8 +171,7 @@ function rule4() {
   const qa = (t, body) => `<div class="qa"><b>${t}</b><p>${body}</p></div>`;
   return flowScreen(ruleBar(4), `<section class="pad"><small class="muted">Step 4 of 4</small><h2>${r.title}</h2>
     <div class="card summary"><div class="srow"><span>${r.came}</span><b>${R.fmtRs(l)}</b></div><div class="srow"><span>${r.stays}</span><b>${R.fmtRs(R.clampFloor(F(), l))}</b></div><div class="srow"><span>${r.shareL}</span><b>${R.fmtPct(st.share)}</b></div><div class="srow total"><span>${r.goes}</span><b>${R.fmtRs(v)}</b></div>${staged}${fundRow()}</div>
-    <div class="card">${qa(r.fallT, R.worstLine(v))}${qa(r.crashT, r.crash)}${qa(r.stopT, r.stop)}</div>
-    <label class="switch"><input type="checkbox" data-action="cap" ${st.capOn ? 'checked' : ''}><span class="track"></span><span class="swlabel">${r.cap}<small>${r.capNote}</small></span></label></section>`, btn(r.cta, 'set-rule'));
+    <div class="card">${qa(r.fallT, R.worstLine(v))}${qa(r.crashT, r.crash)}${qa(r.stopT, r.stop)}</div></section>`, btn(r.cta, 'set-rule'));
 }
 
 /* ---------- other tabs ---------- */
@@ -262,7 +251,6 @@ document.addEventListener('input', (e) => {
 document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.dataset.kyc) { const id = el.dataset.kyc; st.kyc = el.checked ? [...new Set([...st.kyc, id])] : st.kyc.filter((x) => x !== id); st.keepScroll = true; render(); }
-  if (el.dataset.action === 'cap') st.capOn = el.checked;
 });
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-action]');
@@ -298,15 +286,13 @@ document.addEventListener('click', (e) => {
       if (!st.rule || st.paused) return;
       const amt = n(st.landed);
       if (amt <= 0) { st.landedErr = 'Enter the amount that landed, more than ₹0.'; st.keepScroll = true; render(); return; }
-      const full = R.calcInvest(amt, st.rule.floor, st.rule.share);
-      const invested = R.runInvest(amt, st.rule.floor, st.rule.share, st.capOn, st.runs);
+      const invested = R.calcInvest(amt, st.rule.floor, st.rule.share);
       st.fires.push({ amount: amt, invested }); st.runs += 1;
-      st.lastFire = { amount: amt, invested, capped: invested < full };
+      st.lastFire = { amount: amt, invested };
       st.landedOpen = false; st.landed = null; st.landedErr = ''; st.keepScroll = true; render();
     },
     pause: stay(() => { st.paused = !st.paused; st.landedOpen = false; }),
     'stop-rule': () => { st.rule = null; st.paused = false; st.fires = []; st.runs = 0; st.lastFire = null; st.landedOpen = false; st.toast = S.home.rule.stopped; render(); },
-    'ask-toggle': stay(() => { st.askOpen = st.askOpen === el.dataset.id ? null : el.dataset.id; }),
     'open-stocks': () => { st.gates.stocks = true; render(); },
     'open-fno': () => { st.gates.fno = true; render(); },
     reset: () => { st = initial(); go('/welcome'); render(); },

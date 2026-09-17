@@ -1,8 +1,6 @@
 export const SHARE_MIN = 0.01;
 export const SHARE_MAX = 0.5;
 export const FALL = 0.25;
-export const WORTH = 1.013;
-export const FIRST_RUN_CAP = 100;
 
 const num = (x) => { const n = Number(x); return Number.isFinite(n) ? n : 0; };
 
@@ -14,11 +12,6 @@ export function calcInvest(lastInflow, floor, share) {
   return Math.max(0, Math.round((L - clampFloor(floor, L)) * clampShare(share)));
 }
 
-export function runInvest(amount, floor, share, capOn, runs) {
-  const v = calcInvest(amount, floor, share);
-  return capOn && runs === 0 ? Math.min(FIRST_RUN_CAP, v) : v;
-}
-
 export function stagePlan(invest) {
   const total = Math.max(0, Math.round(num(invest)));
   const now = Math.round(total * 0.25);
@@ -27,19 +20,6 @@ export function stagePlan(invest) {
   const steps = [step, step, step, step, step, step];
   steps[0] += rest - step * 6;
   return { now, steps, total };
-}
-
-export const COMPANIES = [
-  ['HDFC Bank', 0.13], ['Reliance', 0.09], ['ICICI Bank', 0.08], ['Infosys', 0.06], ['Bharti Airtel', 0.05],
-];
-
-export function companySplit(invest) {
-  const total = Math.max(0, Math.round(num(invest)));
-  if (total === 0) return [];
-  const rows = COMPANIES.map(([name, w]) => ({ name, amount: Math.floor(total * w) }));
-  const used = rows.reduce((a, r) => a + r.amount, 0);
-  rows.push({ name: 'and 45 others', short: '+45', amount: total - used });
-  return rows;
 }
 
 export function fmtNum(n) {

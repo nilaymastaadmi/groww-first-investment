@@ -232,3 +232,15 @@ input[type=range]{width:100%;margin:10px 0 4px;accent-color:var(--btn)}
 .evals th,.evals td{text-align:left;padding:6px;border-bottom:1px solid var(--line);vertical-align:top;word-break:break-word}
 .evals tr.FAIL td{color:var(--red)}
 .evals tr.pass td:last-child{color:var(--green)}
+
+/* minimal pass */
+.brand{flex:1;font-size:19px;font-weight:700;letter-spacing:-.01em}
+.rowlink{width:100%;display:flex;align-items:center;gap:12px;text-align:left;cursor:pointer;color:var(--text)}
+.rowlink>svg:first-child{color:var(--green)}
+.rowlink>svg:last-child{color:var(--muted);width:18px;height:18px}
+.rowlink span{flex:1}
+.rowlink b{display:block;font-size:16px}
+.rowlink small{display:block;font-size:13px}
+.lnk{background:none;border:0;color:var(--green);font-size:15px;font-weight:600;cursor:pointer;padding:6px 0}
+.ractions{gap:22px;margin:14px 0 0;border-top:1px solid var(--line);padding-top:8px}
+.rulecard .btn{margin-top:12px}
