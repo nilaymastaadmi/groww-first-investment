@@ -64,7 +64,7 @@ function flowbar(title, progress, backAction = 'back') {
 }
 const fab = () => `<button class="fab" data-action="guide-open">${ICON.help}<span>Ask</span></button>`;
 const fundRow = () => `<div class="fundrow"><span class="flogo">${S.fund.badge}</span><div><b>${S.fund.name}</b><small>${S.fund.meta}</small></div></div>`;
-const tabScreen = (active, body) => `<div class="view tabbed">${appbar()}<main class="body">${body}</main>${tabbar(active)}${fab()}</div>`;
+const tabScreen = (active, body, showFab = true) => `<div class="view tabbed">${appbar()}<main class="body">${body}</main>${tabbar(active)}${showFab ? fab() : ''}</div>`;
 const flowScreen = (bar, body, footer) => `<div class="view">${bar}<main class="body">${body}</main>${footer ? `<footer class="cta">${footer}</footer>` : ''}</div>`;
 
 /* ---------- onboarding ---------- */
@@ -126,7 +126,7 @@ function mfHome() {
   const s1 = a ? 'done' : 'now', s2 = b ? 'done' : a ? 'now' : 'locked', s3 = c ? 'done' : b ? 'now' : 'locked';
   const steps = c ? '' : `<div class="card path">${stepRow(0, s1, a ? h.steps[0].after : h.steps[0].before, 'kyc')}${stepRow(1, s2, b ? h.steps[1].after : h.steps[1].before, 'basics')}${stepRow(2, s3, c ? h.steps[2].after : h.steps[2].before, 'plan')}</div>`;
   const toast = st.toast ? `<div class="toast">${st.toast}</div>` : '';
-  return tabScreen('mf', `${mfTabs('/mf')}<section class="pad"><h1>${h.title}</h1><p class="lead small">${c ? h.subRule : h.sub}</p>${toast}${c ? ruleCard() : steps}${askRow()}</section>`);
+  return tabScreen('mf', `${mfTabs('/mf')}<section class="pad"><h1>${h.title}</h1><p class="lead small">${c ? h.subRule : h.sub}</p>${toast}${c ? ruleCard() : steps}${askRow()}</section>`, false);
 }
 
 function mfExplore() {
