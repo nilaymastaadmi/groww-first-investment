@@ -244,3 +244,22 @@ input[type=range]{width:100%;margin:10px 0 4px;accent-color:var(--btn)}
 .lnk{background:none;border:0;color:var(--green);font-size:15px;font-weight:600;cursor:pointer;padding:6px 0}
 .ractions{gap:22px;margin:14px 0 0;border-top:1px solid var(--line);padding-top:8px}
 .rulecard .btn{margin-top:12px}
+
+/* softer home */
+.askhero{border-color:#1f3a31;background:linear-gradient(160deg,#13241f,var(--card) 60%)}
+.askhead{display:flex;gap:12px;align-items:flex-start;margin-bottom:6px}
+.askhead>svg{color:var(--green);width:30px;height:30px;margin-top:2px}
+.askhero h1{font-size:22px;margin:0 0 2px}
+.sect{font-size:14px;color:var(--muted);font-weight:600;margin:18px 2px 8px}
+.option p{font-size:14px;color:var(--body);margin-top:2px}
+.hrowlink{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:10px 0;text-align:left;text-decoration:none;color:var(--text);cursor:pointer}
+.hrowlink span{flex:1}
+.hrowlink b{display:block;font-size:15px}
+.hrowlink small{display:block;font-size:13px}
+.hrowlink>svg{color:var(--muted);width:18px;height:18px}
+.card.list .hrowlink+.hrowlink{border-top:1px solid var(--line)}
+.amtchips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.amtchip{text-align:center;padding:12px 6px}
+.calm{list-style:none;display:grid;gap:12px;margin-top:6px}
+.calm li{display:flex;gap:10px;align-items:center;font-size:16px;color:var(--body)}
+.calm svg{color:var(--green);width:20px;height:20px}

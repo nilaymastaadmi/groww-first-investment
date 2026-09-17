@@ -9,8 +9,9 @@ const initial = () => ({
   started: false, kyc: [], kycSubmitted: false, kycOpen: null,
   basicsIdx: 0, basicsDone: false,
   shape: null, lastInflow: null, floor: null, share: 0.10, shareAsked: 0.10, s1err: '',
+  holdings: [], onceAmt: 500, afterKyc: null,
   rule: null, paused: false, fires: [], runs: 0, landedOpen: false, landed: null, landedErr: '', lastFire: null, toast: '',
-  gates: { stocks: false, fno: false },
+  gates: { stocks: false, fno: false }, askOpen: null,
   guide: { open: false, msgs: [], chips: null },
 });
 let st = initial();
@@ -47,7 +48,7 @@ function fill(text) {
 /* ---------- routing ---------- */
 const path = () => { const h = location.hash.replace(/^#/, ''); return h && h.startsWith('/') ? h : '/mf'; };
 const go = (p) => { location.hash = '#' + p; };
-window.addEventListener('hashchange', () => { st.guide.open = false; render(); });
+window.addEventListener('hashchange', () => { st.guide.open = false; if (path() !== '/mf') st.toast = ''; render(); });
 
 /* ---------- pieces ---------- */
 const btn = (label, action, cls = 'primary', extra = '') => `<button class="btn ${cls}" data-action="${action}" ${extra}>${label}</button>`;
@@ -70,7 +71,7 @@ const flowScreen = (bar, body, footer) => `<div class="view">${bar}<main class="
 /* ---------- onboarding ---------- */
 function welcome() {
   const w = S.welcome;
-  return flowScreen('', `<section class="pad hero"><div class="bigmark">${logo}</div><span class="chip green">${w.chip}</span><h1>${w.title}</h1><p class="lead">${w.body}</p><ol class="steplist">${w.steps.map(([a, b], i) => `<li><span class="num">${i + 1}</span><div><b>${a}</b><small>${b}</small></div></li>`).join('')}</ol></section>`, btn(w.cta, 'start'));
+  return flowScreen('', `<section class="pad hero"><div class="bigmark">${logo}</div><span class="chip green">${w.chip}</span><h1>${w.title}</h1><p class="lead">${w.body}</p><ul class="calm">${w.points.map((p) => `<li>${ICON.check}<span>${p}</span></li>`).join('')}</ul></section>`, btn(w.cta, 'start'));
 }
 
 function kyc() {
@@ -91,15 +92,6 @@ function mfTabs(active) {
   return `<div class="subtabs">${S.mfTabs.map(([href, name]) => `<a href="#${href}" class="${href === active ? 'on' : ''}">${name}</a>`).join('')}</div>`;
 }
 
-function stepRow(i, state, body, action) {
-  const s = S.home.steps[i];
-  const mark = state === 'done' ? `<span class="num done">${ICON.check}</span>` : `<span class="num ${state === 'now' ? 'now' : ''}">${i + 1}</span>`;
-  let tail = '';
-  if (state === 'now') tail = btn(s.cta, action, 'primary small');
-  if (state === 'locked') tail = `<small class="lockline">${ICON.lock}${s.locked}</small>`;
-  return `<div class="pstep ${state}">${mark}<div class="pbody"><b>${s.name}</b><p>${body}</p>${tail}</div></div>`;
-}
-
 function ruleCard() {
   const r = st.rule, h = S.home.rule, fire = st.lastFire;
   let result = '';
@@ -116,17 +108,30 @@ function ruleCard() {
     <div class="ractions"><button class="lnk" data-action="pause">${st.paused ? h.resume : h.pause}</button><button class="lnk" data-action="change">${h.change}</button><button class="lnk red" data-action="stop-rule">${h.stop}</button></div></div>`;
 }
 
-function askRow() {
-  const h = S.home;
-  return `<button class="card rowlink" data-action="guide-open">${ICON.help}<span><b>${h.askTitle}</b><small>${h.askSub}</small></span>${ICON.chev}</button>`;
-}
+const qa = (t, body, id = '') => `<div class="qa"><b>${t}</b><p ${id ? `id="${id}"` : ''}>${body}</p></div>`;
 
 function mfHome() {
-  const h = S.home, a = st.kycSubmitted, b = st.basicsDone, c = !!st.rule;
-  const s1 = a ? 'done' : 'now', s2 = b ? 'done' : a ? 'now' : 'locked', s3 = c ? 'done' : b ? 'now' : 'locked';
-  const steps = c ? '' : `<div class="card path">${stepRow(0, s1, a ? h.steps[0].after : h.steps[0].before, 'kyc')}${stepRow(1, s2, b ? h.steps[1].after : h.steps[1].before, 'basics')}${stepRow(2, s3, c ? h.steps[2].after : h.steps[2].before, 'plan')}</div>`;
+  const h = S.home, a = st.kycSubmitted;
+  const total = st.holdings.reduce((x, y) => x + y, 0);
+  const qs = h.askIds.map((id) => {
+    const q = byId(id), open = st.askOpen === id;
+    return `<div class="qrow ${open ? 'open' : ''}"><button data-action="ask-toggle" data-id="${id}"><span>${q.q}</span>${ICON.chev}</button>${open ? `<p>${fill(q.a)}</p>` : ''}</div>`;
+  }).join('');
+  const ask = `<div class="card askhero"><div class="askhead">${ICON.help}<div><h1>${h.title}</h1><p class="muted">${h.sub}</p></div></div>${qs}<button class="btn text" data-action="guide-open">${h.all}</button></div>`;
   const toast = st.toast ? `<div class="toast">${st.toast}</div>` : '';
-  return tabScreen('mf', `${mfTabs('/mf')}<section class="pad"><h1>${h.title}</h1><p class="lead small">${c ? h.subRule : h.sub}</p>${toast}${c ? ruleCard() : steps}${askRow()}</section>`, false);
+  const holding = total ? `<div class="card"><div class="rchead"><b>${R.fmtRs(total)}</b><span class="chip green">${h.invested}</span></div>${fundRow()}<p class="muted">${h.holdingSub}</p><div class="ractions"><button class="lnk" data-action="take-out">${h.out}</button></div></div>` : '';
+  const money = total || st.rule ? `<h3 class="sect">${h.moneyTitle}</h3>${holding}${st.rule ? ruleCard() : ''}` : '';
+  const ruleOpt = st.rule ? '' : `<div class="card option"><div class="rchead"><b>${h.ruleOpt.title}</b><span class="chip">${h.ruleOpt.tag}</span></div><p>${h.ruleOpt.body}</p>${btn(h.ruleOpt.cta, 'plan', 'secondary small')}</div>`;
+  const ready = `<h3 class="sect">${h.readyTitle}</h3><div class="card option"><b>${h.once.title}</b><p>${h.once.body}</p>${btn(total ? h.once.again : h.once.cta, 'once', 'primary small')}</div>${ruleOpt}`;
+  const help = `<h3 class="sect">${h.help.title}</h3><div class="card list"><a class="hrowlink" href="#/kyc"><span><b>${h.help.docs}</b><small>${a ? h.help.docsAfter : h.help.docsBefore.replace('{n}', st.kyc.length)}</small></span>${ICON.chev}</a><button class="hrowlink" data-action="basics"><span><b>${h.help.basics}</b><small>${st.basicsDone ? h.help.basicsDone : h.help.basicsBody}</small></span>${ICON.chev}</button></div>`;
+  return tabScreen('mf', `${mfTabs('/mf')}<section class="pad">${toast}${ask}${money}${ready}${help}</section>`, false);
+}
+
+function once() {
+  const o = S.once, amt = st.onceAmt, ok = n(amt) >= 100;
+  const chips = o.chips.map((v) => `<button class="shape amtchip ${amt === v ? 'on' : ''}" data-action="once-amt" data-v="${v}"><b>${R.fmtRs(v)}</b></button>`).join('');
+  const cta = st.kycSubmitted ? btn(o.cta.replace('{amt}', R.fmtRs(amt)), 'once-confirm', 'primary', ok ? '' : 'disabled') : btn(o.ctaDocs, 'once-docs');
+  return flowScreen(flowbar(o.title, null, 'home'), `<section class="pad"><h2>${o.label}</h2><div class="amtchips">${chips}</div>${amountInput('once', amt)}<div class="note" id="onceNote">${ok ? '' : o.min}</div>${fundRow()}<div class="card">${qa(S.rule4.fallT, R.worstLine(ok ? amt : 100), 'onceFall')}${qa(o.outT, o.out)}</div>${st.kycSubmitted ? '' : `<p class="muted">${o.docsNote}</p>`}</section>`, cta);
 }
 
 function mfExplore() {
@@ -168,7 +173,6 @@ function rule3() {
 function rule4() {
   const r = S.rule4, v = invest(), l = L();
   const staged = st.shape === 'onetime' && v > 0 ? `<p class="muted">${R.stageSentence(R.stagePlan(v))}</p>` : '';
-  const qa = (t, body) => `<div class="qa"><b>${t}</b><p>${body}</p></div>`;
   return flowScreen(ruleBar(4), `<section class="pad"><small class="muted">Step 4 of 4</small><h2>${r.title}</h2>
     <div class="card summary"><div class="srow"><span>${r.came}</span><b>${R.fmtRs(l)}</b></div><div class="srow"><span>${r.stays}</span><b>${R.fmtRs(R.clampFloor(F(), l))}</b></div><div class="srow"><span>${r.shareL}</span><b>${R.fmtPct(st.share)}</b></div><div class="srow total"><span>${r.goes}</span><b>${R.fmtRs(v)}</b></div>${staged}${fundRow()}</div>
     <div class="card">${qa(r.fallT, R.worstLine(v))}${qa(r.crashT, r.crash)}${qa(r.stopT, r.stop)}</div></section>`, btn(r.cta, 'set-rule'));
@@ -221,7 +225,7 @@ function evalsScreen() {
 function render() {
   const p = path();
   if (!st.started && p !== '/evals' && p !== '/welcome') { location.replace('#/welcome'); return; }
-  const view = { '/welcome': welcome, '/kyc': kyc, '/mf': mfHome, '/mf/explore': mfExplore, '/basics': basics, '/rule/1': rule1, '/rule/2': rule2, '/rule/3': rule3, '/rule/4': rule4, '/stocks': stocks, '/fno': fno, '/pay': pay, '/you': you, '/evals': evalsScreen }[p];
+  const view = { '/welcome': welcome, '/kyc': kyc, '/mf': mfHome, '/mf/explore': mfExplore, '/basics': basics, '/rule/1': rule1, '/rule/2': rule2, '/rule/3': rule3, '/rule/4': rule4, '/once': once, '/stocks': stocks, '/fno': fno, '/pay': pay, '/you': you, '/evals': evalsScreen }[p];
   if (!view) { location.replace('#/mf'); return; }
   const prev = $('.body') ? $('.body').scrollTop : 0;
   $('#app').innerHTML = view() + guideSheet();
@@ -240,6 +244,12 @@ document.addEventListener('input', (e) => {
     const key = el.dataset.amount;
     if (key === 'inflow') { st.lastInflow = val; st.s1err = pr.error; $('#s1err').textContent = pr.error; }
     if (key === 'floor') { st.floor = val; $('#floorNote').textContent = floorNote(); }
+    if (key === 'once') {
+      st.onceAmt = n(val); const ok = st.onceAmt >= 100;
+      $('#onceNote').textContent = ok ? '' : S.once.min;
+      $('#onceFall').textContent = R.worstLine(ok ? st.onceAmt : 100);
+      const b = $('[data-action=once-confirm]'); if (b) { b.textContent = S.once.cta.replace('{amt}', R.fmtRs(st.onceAmt)); b.disabled = !ok; }
+    }
     if (key === 'landed') { st.landed = val; st.landedErr = pr.error; $('.note.err').textContent = pr.error; }
   }
   if (el.id === 'share') {
@@ -259,18 +269,23 @@ document.addEventListener('click', (e) => {
   if (el.classList.contains('modal') && e.target !== el) return;
   const stay = (fn) => () => { fn(); st.keepScroll = true; render(); };
   const A = {
-    start: () => { st.started = true; go('/kyc'); },
+    start: () => { st.started = true; go('/mf'); },
     home: () => go('/mf'),
     back: () => { const i = n(path().split('/')[2]); go(i > 1 ? '/rule/' + (i - 1) : '/mf'); },
     kyc: () => go('/kyc'),
     'kyc-toggle': stay(() => { st.kycOpen = st.kycOpen === el.dataset.id ? null : el.dataset.id; }),
     'kyc-demo': stay(() => { st.kyc = S.kyc.rows.map((r) => r.id); }),
-    'kyc-submit': () => { if (st.kyc.length !== 6) return; st.kycSubmitted = true; go('/mf'); },
-    basics: () => { if (!st.kycSubmitted) return; st.basicsIdx = 0; go('/basics'); },
+    'kyc-submit': () => { if (st.kyc.length !== 6) return; st.kycSubmitted = true; const to = st.afterKyc || '/mf'; st.afterKyc = null; go(to); },
+    basics: () => { st.basicsIdx = 0; go('/basics'); },
     'basics-next': () => { st.basicsIdx = Math.min(2, st.basicsIdx + 1); render(); },
     'basics-prev': () => { st.basicsIdx = Math.max(0, st.basicsIdx - 1); render(); },
     'basics-done': () => { st.basicsDone = true; go('/mf'); },
-    plan: () => { if (!st.basicsDone) return; st.toast = ''; go('/rule/1'); },
+    plan: () => { st.toast = ''; go('/rule/1'); },
+    once: () => { st.toast = ''; go('/once'); },
+    'once-amt': stay(() => { st.onceAmt = n(el.dataset.v); }),
+    'once-docs': () => { st.afterKyc = '/once'; go('/kyc'); },
+    'once-confirm': () => { if (path() !== '/once' || n(st.onceAmt) < 100 || !st.kycSubmitted) return; st.holdings.push(n(st.onceAmt)); st.toast = S.home.onceDone.replace('{amt}', R.fmtRs(st.onceAmt)); go('/mf'); },
+    'take-out': () => { st.holdings = []; st.toast = S.home.outDone; render(); },
     change: () => { st.toast = ''; go('/rule/1'); },
     shape: stay(() => { st.shape = el.dataset.id; st.s1err = ''; }),
     'r1-next': () => { if (!st.shape || L() <= 0) { st.s1err = S.rule1.err; st.keepScroll = true; render(); return; } st.s1err = ''; go('/rule/2'); },
@@ -279,7 +294,7 @@ document.addEventListener('click', (e) => {
     'set-rule': () => {
       if (path() !== '/rule/4') return;
       st.rule = { floor: R.clampFloor(F(), L()), share: st.share, shape: st.shape };
-      st.paused = false; st.landedOpen = false; st.lastFire = null; st.toast = ''; go('/mf');
+      st.paused = false; st.landedOpen = false; st.lastFire = null; st.toast = S.home.ruleDone; go('/mf');
     },
     'landed-open': stay(() => { st.landedOpen = true; }),
     run: () => {
@@ -293,6 +308,7 @@ document.addEventListener('click', (e) => {
     },
     pause: stay(() => { st.paused = !st.paused; st.landedOpen = false; }),
     'stop-rule': () => { st.rule = null; st.paused = false; st.fires = []; st.runs = 0; st.lastFire = null; st.landedOpen = false; st.toast = S.home.rule.stopped; render(); },
+    'ask-toggle': stay(() => { st.askOpen = st.askOpen === el.dataset.id ? null : el.dataset.id; }),
     'open-stocks': () => { st.gates.stocks = true; render(); },
     'open-fno': () => { st.gates.fno = true; render(); },
     reset: () => { st = initial(); go('/welcome'); render(); },

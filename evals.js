@@ -5,9 +5,10 @@ import { byId, ALL_QA } from './guide.js';
 function screenBodies() {
   const h = S.home;
   return {
-    welcome: [S.welcome.body, ...S.welcome.steps.flat()],
+    welcome: [S.welcome.body, ...S.welcome.points],
     kyc: [S.kyc.sub],
-    mfHome: [h.sub, ...h.steps.map((s) => s.before)],
+    mfHome: [h.sub, h.once.body, h.ruleOpt.body, h.help.docsBefore, h.help.basicsBody],
+    once: [S.once.out, S.once.docsNote, R.worstLine(500)],
     basics0: [S.basics.cards[0].body], basics1: [S.basics.cards[1].body], basics2: [S.basics.cards[2].body],
     rule1: [S.rule1.label, S.rule1.err], rule2: [S.rule2.hint, S.rule2.zero, S.rule2.over], rule3: [S.rule3.line, S.rule3.half],
     rule4: [R.worstLine(1500), S.rule4.crash, S.rule4.stop],
@@ -47,7 +48,7 @@ export function runEvals() {
   t('B1', 'no banned word', hits.length ? hits.join(', ') : 'none', hits.length === 0);
   const wc = screenBodies(); const over = Object.entries(wc).map(([k, a]) => [k, words(a)]).filter(([, c]) => c >= 60);
   t('B7', 'every screen under 60 words', over.length ? over.map(([k, c]) => `${k}=${c}`).join(', ') : Object.entries(wc).map(([k, a]) => `${k}=${words(a)}`).join(' '), over.length === 0);
-  const chipIds = Object.values(GUIDE.chips).flat(); const dead = chipIds.filter((id) => !byId(id));
+  const chipIds = [...Object.values(GUIDE.chips).flat(), ...S.home.askIds]; const dead = chipIds.filter((id) => !byId(id));
   t('E9', 'every Ask question resolves to an answer', dead.length ? 'missing: ' + dead.join(', ') : `${chipIds.length} links, 0 missing`, dead.length === 0);
   const flat = ALL_QA.filter((qa) => /^no\b/i.test(qa.a) && !['money6', 'basics4', 'plan9'].includes(qa.id));
   t('E10', 'no money or safety answer opens with "No"', flat.length ? flat.map((q) => q.id).join(', ') : 'none', flat.length === 0);
